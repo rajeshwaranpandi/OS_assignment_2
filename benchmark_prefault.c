@@ -264,13 +264,13 @@ static int count_new_pages_nonzero(uint8_t *buff2, const Plan *p) {
     return bad;
 }
 
-static int cow_sanity(uint8_t *buff2, const Plan *p) {
+static int cow_sanity(uint8_t *buff, const Plan *p) {
     for (int i = 0; i < p->n_dup_pairs; i++) {
         int a_page = p->dup_pairs[i].a;
         int b_page = p->dup_pairs[i].b;
 
-        uint8_t *a = buff2 + (size_t)a_page * (size_t)p->pg;
-        uint8_t *b = buff2 + (size_t)b_page * (size_t)p->pg;
+        uint8_t *a = buff + (size_t)a_page * (size_t)p->pg;
+        uint8_t *b = buff + (size_t)b_page * (size_t)p->pg;
 
         uint8_t orig = b[0];
         a[0] ^= 0xFF;          // write to a
@@ -280,6 +280,7 @@ static int cow_sanity(uint8_t *buff2, const Plan *p) {
     }
     return 1;                  // PASS
 }
+
 static Result validation(uint8_t *buff1, uint8_t *buff2, const Plan *p) {
     Result r;
     memset(&r, 0, sizeof(r));
@@ -290,7 +291,7 @@ static Result validation(uint8_t *buff1, uint8_t *buff2, const Plan *p) {
 
     r.phase1_mismatches = count_phase1_mismatches(buff1, buff2, p);
     r.newpage_nonzero = count_new_pages_nonzero(buff2, p);
-    r.cow_ok = cow_sanity(buff2, p);
+    r.cow_ok = cow_sanity(buff2, p) && cow_sanity(buff1, p);
     return r;
 }
 static Result run(uint8_t *buff1, uint8_t *buff2, const Plan *p) {
