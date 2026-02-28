@@ -1,4 +1,4 @@
-# Pre-Faulting and Content-Aware Page Mapping Across Program Phases
+# Prefault + Content-Aware Mapping Benchmark (Assignment-2)
 
 This repo contains `benchmark_prefault.c`, a small benchmark that simulates a **two-phase** program over two large virtual buffers (`buff1`, `buff2`) and checks whether your OS mechanism sets up **Page mappings** correctly.
 
@@ -12,7 +12,7 @@ This repo contains `benchmark_prefault.c`, a small benchmark that simulates a **
    - touches a **random subset** of pages in `buff1`  
    - also creates some **duplicate-content page pairs** (extension workload)
 5. `Syscall2_dedup(buff1, buff2, len)`  
-   - (extension) merges identical pages into one physical page using **safe semantics** (typically read-only sharing + **copy-on-write**)
+   - merges **all identical-content pages across both buffers** into a single physical page using **safe semantics** (typically read-only sharing + **copy-on-write**)
 6. `compute_phase2(buff2)`  
    - touches all Phase-1 pages (should already be mapped) **plus** some extra "new" random pages (should read as zero)
 
@@ -20,7 +20,7 @@ This repo contains `benchmark_prefault.c`, a small benchmark that simulates a **
 
 - **Core correctness (prefault/copy for Phase-1 pages):** every page touched in Phase-1 must appear in `buff2` with the **same content**; Phase-2 should ideally avoid page-faulting for those pages (fault delta drops).
 - **New Phase-2 pages:** pages not touched in Phase-1 may fault on first touch, but must become **zero-filled** pages.
-- **Extension safety (dedup):** if pages are deduplicated, writing to one must **not** silently modify another (COW correctness / no writable aliasing).
+- **Dedup across both buffers:** any pages in `buff1` and `buff2` with identical content should map to a **single physical page** (typically via read-only sharing + **copy-on-write** on write).
 
 ## syscall failure
 
@@ -32,7 +32,7 @@ Before the kernel syscalls are implemented, the syscall numbers used by the benc
 ## What must be implemented to pass cleanly
 
 1. **Syscall1** must validate arguments and establish a mechanism so that pages touched in `buff1` during Phase-1 are also mapped into `buff2` with identical content (ready before Phase-2 touches them).
-2. **Syscall2 (extension)** must deduplicate identical pages while preserving correctness (typically via **copy-on-write** on write attempts).
+2. **Syscall2** must deduplicate **identical pages across both `buff1` and `buff2`** while preserving correctness (typically via **copy-on-write** on write attempts).
 3. Phase-2 pages not seen in Phase-1 must map to **zero-filled** pages when first touched.
 
 ## Build & run
